@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -36,11 +36,80 @@ public class FileOperations
      * @return {@link Map}
      * @throws Exception
      */
-	public Map<String, String> readExcelPOI(String excelFilePath, String sheetName) throws FilloException
-	{
-	   
-	    return null;
-	}
+    public Map<String, String> readExcelPOI(String excelFilePath, String sheetName) throws FilloException
+    {
+        Map<String, String> excelData = new HashMap<>();
+        FileInputStream fileInputStream = null;
+        Workbook workbook = null;
+
+        try
+        {
+            fileInputStream = new FileInputStream(excelFilePath);
+            workbook = new XSSFWorkbook(fileInputStream);
+
+            Sheet sheet = workbook.getSheet(sheetName);
+            if (sheet == null)
+            {
+                throw new FilloException("Sheet '" + sheetName + "' not found in file '" + excelFilePath + "'.");
+            }
+
+            DataFormatter dataFormatter = new DataFormatter();
+            Iterator<Row> rowIterator = sheet.iterator();
+
+            while (rowIterator.hasNext())
+            {
+                Row row = rowIterator.next();
+                Cell keyCell = row.getCell(0);
+
+                if (keyCell == null)
+                {
+                    continue;
+                }
+
+                String key = dataFormatter.formatCellValue(keyCell).trim();
+                if (key.isEmpty())
+                {
+                    continue;
+                }
+
+                Cell valueCell = row.getCell(1);
+                String value = valueCell != null ? dataFormatter.formatCellValue(valueCell) : "";
+                excelData.put(key, value);
+            }
+        }
+        catch (IOException exception)
+        {
+            throw new FilloException("Unable to read excel file '" + excelFilePath + "'.", exception);
+        }
+        finally
+        {
+            if (workbook != null)
+            {
+                try
+                {
+                    workbook.close();
+                }
+                catch (IOException ignored)
+                {
+                    // Ignored as there's nothing meaningful to do here.
+                }
+            }
+
+            if (fileInputStream != null)
+            {
+                try
+                {
+                    fileInputStream.close();
+                }
+                catch (IOException ignored)
+                {
+                    // Ignored as there's nothing meaningful to do here.
+                }
+            }
+        }
+
+        return excelData;
+    }
 
 	
 }
